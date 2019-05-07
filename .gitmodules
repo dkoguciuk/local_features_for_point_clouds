@@ -1,0 +1,9 @@
+[submodule "pointnet"]
+	path = pointnet
+	url = https://github.com/dkoguciuk/pointnet.git
+[submodule "dgcnn"]
+	path = dgcnn
+	url = https://github.com/dkoguciuk/dgcnn.git
+[submodule "pointcnn"]
+	path = pointcnn
+	url = https://github.com/dkoguciuk/pointcnn.git
