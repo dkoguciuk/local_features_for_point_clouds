@@ -12,12 +12,12 @@ def get_model(point_features, is_training, num_classes, bn_decay=None):
     """ Classification PointNet, input is BxNx3, output Bx40 """
     batch_size = point_features.get_shape()[0].value
     num_point = point_features.get_shape()[1].value
-    #num_features = point_features.get_shape()[2].value
+    num_features = point_features.get_shape()[2].value
     end_points = {}
     input_image = tf.expand_dims(point_features, -1)
     
     # Point functions (MLP implemented as conv2d)
-    net = tf_util.conv2d(input_image, 128, [1, 1],
+    net = tf_util.conv2d(input_image, 128, [1, num_features],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='conv1', bn_decay=bn_decay)
