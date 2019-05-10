@@ -15,6 +15,7 @@ from config import Config
 # Endpoint
 pointnet_url = 'http://127.0.0.1:5000/api'
 dgcnn_url = 'http://127.0.0.1:5001/api'
+pointcnn_url = 'http://127.0.0.1:5002/api'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
@@ -38,7 +39,7 @@ DATASET = FLAGS.dataset
 
 NUM_POINT = Config.points_number
 BATCH_SIZE = Config.batch_size
-NUM_FEATURES = 128
+NUM_FEATURES = 48
 
 MAX_EPOCH = FLAGS.max_epoch
 BASE_LEARNING_RATE = FLAGS.learning_rate
@@ -62,13 +63,13 @@ MAX_NUM_POINT = 2048
 # Train/test on modelnet
 if DATASET == 'modelnet':
     NUM_CLASSES = 40
-    TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt'))
-    TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
+    TRAIN_FILES = provider.get_data_files(os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt'))
+    TEST_FILES = provider.get_data_files(os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
 # Train/test on shapenet
 elif DATASET == 'shapenet':
     NUM_CLASSES = 55
-    TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/train_files.txt'))
-    TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/test_files.txt'))
+    TRAIN_FILES = provider.get_data_files(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/train_files.txt'))
+    TEST_FILES = provider.get_data_files(os.path.join(BASE_DIR, 'data/shapenet_core55_1024/test_files.txt'))
 
 BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
@@ -183,7 +184,7 @@ def train_one_epoch(sess, ops, train_writer):
     
     for fn in range(len(TRAIN_FILES)):
         log_string('----' + str(fn) + '-----')
-        current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
+        current_data, current_label = provider.load_data_file(TRAIN_FILES[train_file_idxs[fn]], with_normals=True)
         current_data = current_data[:,0:NUM_POINT,:]
         current_data, current_label, _ = provider.shuffle_data(current_data, np.squeeze(current_label))            
         current_label = np.squeeze(current_label)
@@ -200,20 +201,33 @@ def train_one_epoch(sess, ops, train_writer):
             end_idx = (batch_idx+1) * BATCH_SIZE
             
             # Augment batched point clouds by rotation and jittering
+            # import pickle
+            # from pypcd import pypcd
+            # cloud_out = pypcd.make_xyz_normal_point_cloud(current_data[start_idx, :, :])
+            # cloud_out.save_pcd('pc_orig.pcd')
             rotated_data = provider.rotate_point_cloud(current_data[start_idx:end_idx, :, :])
+            # cloud_out = pypcd.make_xyz_normal_point_cloud(rotated_data[0])
+            # cloud_out.save_pcd('pc_rot.pcd')
+            # exit()
+
             jittered_data = provider.jitter_point_cloud(rotated_data)
             jittered_data_json = {'point_clouds': jittered_data.tolist()}
 
-            # Etract features pointnet
-            response_pointnet = requests.post(pointnet_url, json=jittered_data_json)
-            pointnet_features = np.array(response_pointnet.json()['features'])
+            # # Etract features pointnet
+            # response_pointnet = requests.post(pointnet_url, json=jittered_data_json)
+            # pointnet_features = np.array(response_pointnet.json()['features'])
+            #
+            # # Etract features dgcnn
+            # response_dgcnn  = requests.post(dgcnn_url, json=jittered_data_json)
+            # dgcnn_features = np.array(response_dgcnn.json()['features'])
 
             # Etract features dgcnn
-            response_dgcnn  = requests.post(dgcnn_url, json=jittered_data_json)
-            dgcnn_features = np.array(response_dgcnn.json()['features'])
+            response_pointcnn = requests.post(pointcnn_url, json=jittered_data_json)
+            pointcnn_features = np.array(response_pointcnn.json()['features'])
 
             # Concatenate
-            point_features = np.concatenate((pointnet_features, dgcnn_features), axis=-1)
+            #point_features = np.concatenate((pointnet_features, dgcnn_features), axis=-1)
+            point_features = pointcnn_features
 
             # Train
             feed_dict = {ops['features_pl']: point_features,
@@ -243,7 +257,7 @@ def eval_one_epoch(sess, ops, test_writer):
     
     for fn in range(len(TEST_FILES)):
         log_string('----' + str(fn) + '-----')
-        current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
+        current_data, current_label = provider.load_data_file(TEST_FILES[fn])
         current_data = current_data[:,0:NUM_POINT,:]
         current_label = np.squeeze(current_label)
         
@@ -259,16 +273,21 @@ def eval_one_epoch(sess, ops, test_writer):
             current_labels = current_label[start_idx:end_idx]
             current_data_json = {'point_clouds': current_point_clouds.tolist()}
 
-            # Etract features pointnet
-            response_pointnet = requests.post(pointnet_url, json=current_data_json)
-            pointnet_features = np.array(response_pointnet.json()['features'])
+            # # Etract features pointnet
+            # response_pointnet = requests.post(pointnet_url, json=current_data_json)
+            # pointnet_features = np.array(response_pointnet.json()['features'])
+            #
+            # # Etract features dgcnn
+            # response_dgcnn  = requests.post(dgcnn_url, json=current_data_json)
+            # dgcnn_features = np.array(response_dgcnn.json()['features'])
 
-            # Etract features dgcnn
-            response_dgcnn  = requests.post(dgcnn_url, json=current_data_json)
-            dgcnn_features = np.array(response_dgcnn.json()['features'])
+            # Etract features pointcnn
+            response_pointcnn = requests.post(pointcnn_url, json=current_data_json)
+            pointcnn_features = np.array(response_pointcnn.json()['features'])
 
             # Concatenate
-            point_features = np.concatenate((pointnet_features, dgcnn_features), axis=-1)
+            #point_features = np.concatenate((pointnet_features, dgcnn_features), axis=-1)
+            point_features = pointcnn_features
 
             feed_dict = {ops['features_pl']: point_features,
                          ops['labels_pl']: current_labels,
