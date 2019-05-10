@@ -172,9 +172,10 @@ def pointcnn_api():
     # Inference
     point_features_eval = session.run(point_features,
                                       feed_dict={handle: handle_val,
-                                                 indices: pf.get_indices(Config.batch_size, sample_num, Config.batch_size),
+                                                 indices: pf.get_indices(Config.batch_size, sample_num, Config.points_number),
                                                  xforms: xforms_np, rotations: rotations_np,
                                                  jitter_range: np.array([jitter_val]), is_training: False})
+
 
     # Return
     return jsonify(features=point_features_eval.tolist())

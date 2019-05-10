@@ -164,9 +164,10 @@ def train():
         for epoch in range(MAX_EPOCH):
             log_string('**** EPOCH %03d ****' % (epoch))
             sys.stdout.flush()
-             
+
             train_one_epoch(sess, ops, train_writer)
             eval_one_epoch(sess, ops, test_writer)
+
             
             # Save the variables to disk.
             if epoch % 10 == 0:
@@ -257,7 +258,7 @@ def eval_one_epoch(sess, ops, test_writer):
     
     for fn in range(len(TEST_FILES)):
         log_string('----' + str(fn) + '-----')
-        current_data, current_label = provider.load_data_file(TEST_FILES[fn])
+        current_data, current_label = provider.load_data_file(TEST_FILES[fn], with_normals=True)
         current_data = current_data[:,0:NUM_POINT,:]
         current_label = np.squeeze(current_label)
         
