@@ -23,7 +23,7 @@ parser.add_argument('--dataset', default='modelnet', help='Dataset to train on: 
 parser.add_argument('--model', default='pointnet_pipeline', help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_pipeline]')
 parser.add_argument('--log_dir', default='log', help='Log dir [default: log]')
 parser.add_argument('--num_point', type=int, default=1024, help='Point Number [256/512/1024/2048] [default: 1024]')
-parser.add_argument('--max_epoch', type=int, default=250, help='Epoch to run [default: 250]')
+parser.add_argument('--max_epoch', type=int, default=15, help='Epoch to run [default: 15]')
 #parser.add_argument('--batch_size', type=int, default=32, help='Batch Size during training [default: 32]')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
@@ -39,7 +39,7 @@ DATASET = FLAGS.dataset
 
 NUM_POINT = Config.points_number
 BATCH_SIZE = Config.batch_size
-NUM_FEATURES = 48
+NUM_FEATURES = 112
 
 MAX_EPOCH = FLAGS.max_epoch
 BASE_LEARNING_RATE = FLAGS.learning_rate
@@ -217,18 +217,18 @@ def train_one_epoch(sess, ops, train_writer):
             # # Etract features pointnet
             # response_pointnet = requests.post(pointnet_url, json=jittered_data_json)
             # pointnet_features = np.array(response_pointnet.json()['features'])
-            #
-            # # Etract features dgcnn
-            # response_dgcnn  = requests.post(dgcnn_url, json=jittered_data_json)
-            # dgcnn_features = np.array(response_dgcnn.json()['features'])
 
-            # Etract features dgcnn
+            # Etract features pointcnn
             response_pointcnn = requests.post(pointcnn_url, json=jittered_data_json)
             pointcnn_features = np.array(response_pointcnn.json()['features'])
 
+            # Etract features dgcnn
+            jittered_data_json = {'point_clouds': jittered_data[:, :, :3].tolist()}
+            response_dgcnn  = requests.post(dgcnn_url, json=jittered_data_json)
+            dgcnn_features = np.array(response_dgcnn.json()['features'])
+
             # Concatenate
-            #point_features = np.concatenate((pointnet_features, dgcnn_features), axis=-1)
-            point_features = pointcnn_features
+            point_features = np.concatenate((pointcnn_features, dgcnn_features), axis=-1)
 
             # Train
             feed_dict = {ops['features_pl']: point_features,
@@ -277,18 +277,18 @@ def eval_one_epoch(sess, ops, test_writer):
             # # Etract features pointnet
             # response_pointnet = requests.post(pointnet_url, json=current_data_json)
             # pointnet_features = np.array(response_pointnet.json()['features'])
-            #
-            # # Etract features dgcnn
-            # response_dgcnn  = requests.post(dgcnn_url, json=current_data_json)
-            # dgcnn_features = np.array(response_dgcnn.json()['features'])
 
             # Etract features pointcnn
             response_pointcnn = requests.post(pointcnn_url, json=current_data_json)
             pointcnn_features = np.array(response_pointcnn.json()['features'])
 
+            # # Etract features dgcnn
+            current_data_json = {'point_clouds': current_point_clouds[:, :, :3].tolist()}
+            response_dgcnn  = requests.post(dgcnn_url, json=current_data_json)
+            dgcnn_features = np.array(response_dgcnn.json()['features'])
+
             # Concatenate
-            #point_features = np.concatenate((pointnet_features, dgcnn_features), axis=-1)
-            point_features = pointcnn_features
+            point_features = np.concatenate((pointcnn_features, dgcnn_features), axis=-1)
 
             feed_dict = {ops['features_pl']: point_features,
                          ops['labels_pl']: current_labels,
