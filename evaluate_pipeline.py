@@ -2,9 +2,7 @@ from timeit import default_timer as timer
 import tensorflow as tf
 import numpy as np
 import argparse
-import socket
 import importlib
-import time
 import os
 import scipy.misc
 import sys
@@ -13,8 +11,9 @@ sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
 sys.path.append(os.path.join(BASE_DIR, 'utils'))
 import provider
-from config import Config
 import requests
+from config import Config
+config = Config()
 
 # Endpoint
 pointnet_url = 'http://127.0.0.1:5000/api'
@@ -37,8 +36,8 @@ DATASET = FLAGS.dataset
 #BATCH_SIZE = FLAGS.batch_size
 #NUM_POINT = FLAGS.num_point
 
-NUM_POINT = Config.points_number
-BATCH_SIZE = Config.batch_size
+NUM_POINT = config.points_number
+BATCH_SIZE = config.batch_size
 NUM_FEATURES = 48
 
 GPU_INDEX = FLAGS.gpu
@@ -83,11 +82,11 @@ def evaluate(num_votes):
         saver = tf.train.Saver()
         
     # Create a session
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    config.allow_soft_placement = True
-    config.log_device_placement = True
-    sess = tf.Session(config=config)
+    session_config = tf.ConfigProto()
+    session_config.gpu_options.allow_growth = True
+    session_config.allow_soft_placement = True
+    session_config.log_device_placement = True
+    sess = tf.Session(config=session_config)
 
     # Restore variables from disk.
     saver.restore(sess, MODEL_PATH)
@@ -137,10 +136,25 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
                 rotated_data = provider.rotate_point_cloud_by_angle(current_data[start_idx:end_idx, :, :],
                                                   vote_idx/float(num_votes) * np.pi * 2)
                 rotated_data_json = {'point_clouds': rotated_data.tolist()}
+
                 # Etract features pointcnn
                 response_pointcnn = requests.post(pointcnn_url, json=rotated_data_json)
                 pointcnn_features = np.array(response_pointcnn.json()['features'])
+
+                # # Etract features pointnet
+                # rotated_data_json = {'point_clouds': rotated_data[:, :, :3].tolist()}
+                # response_pointnet = requests.post(pointnet_url, json=rotated_data_json)
+                # pointnet_features = np.array(response_pointnet.json()['features'])
+                #
+                # # Etract features dgcnn
+                # rotated_data_json = {'point_clouds': rotated_data[:, :, :3].tolist()}
+                # response_dgcnn  = requests.post(dgcnn_url, json=rotated_data_json)
+                # dgcnn_features = np.array(response_dgcnn.json()['features'])
+
+                # Concatenate
+                # point_features = np.concatenate((pointcnn_features, dgcnn_features), axis=-1)
                 point_features = pointcnn_features
+
                 feed_dict = {ops['features_pl']: point_features,
                              ops['labels_pl']: current_label[start_idx:end_idx],
                              ops['is_training_pl']: is_training}

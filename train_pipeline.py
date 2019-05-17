@@ -11,6 +11,7 @@ sys.path.append(os.path.join(BASE_DIR, 'models'))
 sys.path.append(os.path.join(BASE_DIR, 'utils'))
 import provider
 from config import Config
+config = Config()
 
 # Endpoint
 pointnet_url = 'http://127.0.0.1:5000/api'
@@ -37,9 +38,9 @@ DATASET = FLAGS.dataset
 #BATCH_SIZE = FLAGS.batch_size
 #NUM_POINT = FLAGS.num_point
 
-NUM_POINT = Config.points_number
-BATCH_SIZE = Config.batch_size
-NUM_FEATURES = 112
+NUM_POINT = config.points_number
+BATCH_SIZE = config.batch_size
+NUM_FEATURES = 48
 
 MAX_EPOCH = FLAGS.max_epoch
 BASE_LEARNING_RATE = FLAGS.learning_rate
@@ -55,7 +56,7 @@ MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model+'.py')
 LOG_DIR = FLAGS.log_dir
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
 os.system('cp %s %s' % (MODEL_FILE, LOG_DIR)) # bkp of model def
-os.system('cp train.py %s' % LOG_DIR) # bkp of train procedure
+os.system('cp train_pipeline.py %s' % LOG_DIR) # bkp of train procedure
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
 
@@ -135,11 +136,11 @@ def train():
             saver = tf.train.Saver()
             
         # Create a session
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        config.allow_soft_placement = True
-        config.log_device_placement = False
-        sess = tf.Session(config=config)
+        session_config = tf.ConfigProto()
+        session_config.gpu_options.allow_growth = True
+        session_config.allow_soft_placement = True
+        session_config.log_device_placement = False
+        sess = tf.Session(config=session_config)
 
         # Add summary writers
         merged = tf.summary.merge_all()
@@ -214,21 +215,23 @@ def train_one_epoch(sess, ops, train_writer):
             jittered_data = provider.jitter_point_cloud(rotated_data)
             jittered_data_json = {'point_clouds': jittered_data.tolist()}
 
-            # # Etract features pointnet
-            # response_pointnet = requests.post(pointnet_url, json=jittered_data_json)
-            # pointnet_features = np.array(response_pointnet.json()['features'])
-
             # Etract features pointcnn
             response_pointcnn = requests.post(pointcnn_url, json=jittered_data_json)
             pointcnn_features = np.array(response_pointcnn.json()['features'])
 
+            # # Etract features pointnet
+            # jittered_data_json = {'point_clouds': jittered_data[:, :, :3].tolist()}
+            # response_pointnet = requests.post(pointnet_url, json=jittered_data_json)
+            # pointnet_features = np.array(response_pointnet.json()['features'])
+
             # Etract features dgcnn
-            jittered_data_json = {'point_clouds': jittered_data[:, :, :3].tolist()}
-            response_dgcnn  = requests.post(dgcnn_url, json=jittered_data_json)
-            dgcnn_features = np.array(response_dgcnn.json()['features'])
+            # jittered_data_json = {'point_clouds': jittered_data[:, :, :3].tolist()}
+            # response_dgcnn  = requests.post(dgcnn_url, json=jittered_data_json)
+            # dgcnn_features = np.array(response_dgcnn.json()['features'])
 
             # Concatenate
-            point_features = np.concatenate((pointcnn_features, dgcnn_features), axis=-1)
+            #point_features = np.concatenate((pointcnn_features, dgcnn_features), axis=-1)
+            point_features = pointcnn_features
 
             # Train
             feed_dict = {ops['features_pl']: point_features,
@@ -274,21 +277,23 @@ def eval_one_epoch(sess, ops, test_writer):
             current_labels = current_label[start_idx:end_idx]
             current_data_json = {'point_clouds': current_point_clouds.tolist()}
 
-            # # Etract features pointnet
-            # response_pointnet = requests.post(pointnet_url, json=current_data_json)
-            # pointnet_features = np.array(response_pointnet.json()['features'])
-
             # Etract features pointcnn
             response_pointcnn = requests.post(pointcnn_url, json=current_data_json)
             pointcnn_features = np.array(response_pointcnn.json()['features'])
 
+            # # Etract features pointnet
+            # current_data_json = {'point_clouds': current_point_clouds[:, :, :3].tolist()}
+            # response_pointnet = requests.post(pointnet_url, json=current_data_json)
+            # pointnet_features = np.array(response_pointnet.json()['features'])
+
             # # Etract features dgcnn
-            current_data_json = {'point_clouds': current_point_clouds[:, :, :3].tolist()}
-            response_dgcnn  = requests.post(dgcnn_url, json=current_data_json)
-            dgcnn_features = np.array(response_dgcnn.json()['features'])
+            # current_data_json = {'point_clouds': current_point_clouds[:, :, :3].tolist()}
+            # response_dgcnn  = requests.post(dgcnn_url, json=current_data_json)
+            # dgcnn_features = np.array(response_dgcnn.json()['features'])
 
             # Concatenate
-            point_features = np.concatenate((pointcnn_features, dgcnn_features), axis=-1)
+            #point_features = np.concatenate((pointcnn_features, dgcnn_features), axis=-1)
+            point_features = pointcnn_features
 
             feed_dict = {ops['features_pl']: point_features,
                          ops['labels_pl']: current_labels,

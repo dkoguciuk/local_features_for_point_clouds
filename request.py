@@ -1,9 +1,10 @@
 import requests
 import numpy as np
 from config import Config
+config = Config()
 
 # Create point cloud
-shape = (Config.batch_size, Config.points_number, 6)
+shape = (config.batch_size, config.points_number, 6)
 point_clouds = np.zeros(shape, dtype=np.float32)
 data = {'point_clouds': point_clouds.tolist()}
 

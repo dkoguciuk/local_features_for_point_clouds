@@ -79,9 +79,10 @@ global_step = tf.Variable(0, trainable=False, name='global_step')
 is_training = tf.placeholder(tf.bool, name='is_training')
 
 # Data placeholders
-shape = (Config.batch_size, Config.points_number, 6)
+config = Config()
+shape = (config.batch_size, config.points_number, 6)
 data_val_placeholder = tf.placeholder(tf.float32, shape, name='data_val')
-label_val_placeholder = tf.placeholder(tf.int64, Config.batch_size, name='label_val')
+label_val_placeholder = tf.placeholder(tf.int64, config.batch_size, name='label_val')
 handle = tf.placeholder(tf.string, shape=[], name='handle')
 
 # Iterator
@@ -93,7 +94,7 @@ dataset_val = tf.data.Dataset.from_tensor_slices((data_val_placeholder, label_va
 if setting.map_fn is not None:
     dataset_val = dataset_val.map(lambda data, label: tuple(tf.py_func(
         setting.map_fn, [data, label], [tf.float32, label.dtype])), num_parallel_calls=setting.num_parallel_calls)
-dataset_val = dataset_val.batch(Config.batch_size)
+dataset_val = dataset_val.batch(config.batch_size)
 batch_num_val = 1
 iterator_val = dataset_val.make_initializable_iterator()
 
@@ -134,11 +135,11 @@ point_features = net.point_features
 ###############################################################################
 
 # Create a session
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-config.allow_soft_placement = True
-config.log_device_placement = True
-session = tf.Session(config=config)
+session_config = tf.ConfigProto()
+session_config.gpu_options.allow_growth = True
+session_config.allow_soft_placement = True
+session_config.log_device_placement = True
+session = tf.Session(config=session_config)
 
 # Load the model
 saver = tf.train.Saver()
@@ -148,7 +149,7 @@ saver.restore(session, MODEL_PATH)
 handle_val = session.run(iterator_val.string_handle())
 
 # Get the xforms and rotations
-xforms_np, rotations_np = pf.get_xforms(Config.batch_size, rotation_range=rotation_range_val,
+xforms_np, rotations_np = pf.get_xforms(config.batch_size, rotation_range=rotation_range_val,
                                         scaling_range=scaling_range_val, order=setting.rotation_order)
 
 ###############################################################################
@@ -172,7 +173,7 @@ def pointcnn_api():
     # Inference
     point_features_eval = session.run(point_features,
                                       feed_dict={handle: handle_val,
-                                                 indices: pf.get_indices(Config.batch_size, sample_num, Config.points_number),
+                                                 indices: pf.get_indices(config.batch_size, sample_num, config.points_number),
                                                  xforms: xforms_np, rotations: rotations_np,
                                                  jitter_range: np.array([jitter_val]), is_training: False})
 

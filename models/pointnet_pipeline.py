@@ -1,5 +1,11 @@
-import tf_util
+import os
+import sys
 import tensorflow as tf
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(BASE_DIR, '../pointnet'))
+sys.path.append(os.path.join(BASE_DIR, '../pointnet/utils'))
+import tf_util
 
 
 def placeholder_inputs(batch_size, num_point, num_features):

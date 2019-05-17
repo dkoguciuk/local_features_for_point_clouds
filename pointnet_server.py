@@ -20,6 +20,7 @@ sys.path.append(os.path.join(BASE_DIR, 'pointnet', 'models'))
 
 # Model path
 MODEL_PATH = 'pointnet/logs_modelnet/model_1/model_1.ckpt'
+config = Config()
 
 ###############################################################################
 # Flask app
@@ -55,21 +56,21 @@ if not os.path.exists(MODEL_PATH + '.index'):
 def load_model(model):
 
     with tf.device('/gpu:0'):
-        pointclouds_pl, _ = model.placeholder_inputs(Config.batch_size, Config.points_number)
+        pointclouds_pl, _ = model.placeholder_inputs(config.batch_size, config.points_number)
         is_training_pl = tf.placeholder(tf.bool, shape=())
 
         # simple model
-        _, _, point_features = model.get_model(pointclouds_pl, is_training_pl, Config.classes_number)
+        _, _, point_features = model.get_model(pointclouds_pl, is_training_pl, config.classes_number)
 
         # Add ops to save and restore all the variables.
         saver = tf.train.Saver()
 
     # Create a session
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    config.allow_soft_placement = True
-    config.log_device_placement = True
-    session = tf.Session(config=config)
+    session_config = tf.ConfigProto()
+    session_config.gpu_options.allow_growth = True
+    session_config.allow_soft_placement = True
+    session_config.log_device_placement = True
+    session = tf.Session(config=session_config)
 
     # Restore variables
     saver.restore(session, MODEL_PATH)
