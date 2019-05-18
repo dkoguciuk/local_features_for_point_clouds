@@ -19,7 +19,7 @@ load_fn = data_utils.load_cls_train_val
 # Batch size
 ###############################################################################
 
-batch_size = 4
+batch_size = 64
 
 ###############################################################################
 # ModelNet data is shipped with 2048 points, how many points do we want to use?
@@ -69,7 +69,7 @@ epsilon = 1e-2
 
 point_num_variance = 1 // 8
 point_num_clip = 1 // 4
-validate_after_batches = 100
+validate_after_batches = 1000
 
 
 
@@ -82,7 +82,7 @@ save_ply_fn = None
 
 num_class = 40
 
-num_epochs = 250
+num_epochs = 1000
 
 
 
