@@ -15,8 +15,6 @@ sys.path.append(os.path.join(BASE_DIR, '..'))
 from config import Config
 
 # Import PointCNN utils
-sys.path.append(os.path.join(BASE_DIR, '../pointcnn'))
-sys.path.append(os.path.join(BASE_DIR, '../pointcnn/pointcnn_cls'))
 import pointfly as pf
 
 
