@@ -211,13 +211,13 @@ def main():
     loss = tf.reduce_mean(loss)
     loss = pointnet_pipeline_module.get_loss(predictions, labels)
     tf.summary.scalar('loss/train', tensor=loss, collections=['train'])
-    tf.summary.scalar('loss/test', tensor=loss, collections=['test'])
+    tf.summary.scalar('loss/val', tensor=loss, collections=['val'])
 
     # Summaries
     correct = tf.equal(tf.argmax(predictions, 1), tf.to_int64(labels))
     accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(batch_size)
     tf.summary.scalar('accuracy/train', tensor=accuracy, collections=['train'])
-    tf.summary.scalar('accuracy/test', tensor=accuracy, collections=['test'])
+    tf.summary.scalar('accuracy/val', tensor=accuracy, collections=['val'])
 
     # Reset metrics
     reset_metrics_op = tf.variables_initializer([var for var in tf.local_variables()
@@ -264,7 +264,7 @@ def main():
     # Session!
     with tf.Session() as sess:
         summaries_op = tf.summary.merge_all('train')
-        summaries_test_op = tf.summary.merge_all('test')
+        summaries_val_op = tf.summary.merge_all('val')
         summary_writer = tf.summary.FileWriter(folder_summary, sess.graph)
 
         # Init!
@@ -350,7 +350,7 @@ def main():
                                                             rotation_range=rotation_range_val,
                                                             scaling_range=scaling_range_val,
                                                             order=setting.rotation_order)
-                    loss_val, acc_val, summaries_val = sess.run([loss, accuracy, summaries_op],
+                    loss_val, acc_val, summaries_val = sess.run([loss, accuracy, summaries_val_op],
                              feed_dict={
                                  handle: handle_val,
                                  indices: pf.get_indices(batch_size_val, point_num, dataset_point_num,
