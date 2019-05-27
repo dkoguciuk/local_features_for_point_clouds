@@ -9,13 +9,14 @@ import importlib
 import tensorflow as tf
 from pathlib import Path
 
+# Import PointCNN utils
+import pointfly as pf
+
 # Import config
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(BASE_DIR, '..'))
-from config import Config
 
-# Import PointCNN utils
-import pointfly as pf
+from config import Config
 
 
 def xconv(pts, fts, qrs, tag, N, K, D, P, C, C_pts_fts, is_training, with_X_transformation, depth_multiplier,
@@ -172,7 +173,7 @@ if __name__=='__main__':
 
     # Const
     MODEL_NAME = 'pointcnn_cls'
-    SETTINGS_FILE = 'modelnet_x3_l4'
+    SETTINGS_FILE = 'modelnet_settings'
     config = Config()
 
     # Import settings
