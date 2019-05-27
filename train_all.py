@@ -209,17 +209,20 @@ def main():
     ###########################################################################
 
     # PointNet
-    _, _, pointnet_features = pointnet_features_module.get_model(point_cloud=points_augmented,
-                                                                 is_training=is_training,
-                                                                 num_classes=setting.num_class)
-    pointnet_features = tf.squeeze(pointnet_features, axis=-2)
+    with tf.variable_scope('pointnet_features') as sc:
+        _, _, pointnet_features = pointnet_features_module.get_model(point_cloud=points_augmented,
+                                                                     is_training=is_training,
+                                                                     num_classes=setting.num_class)
+        pointnet_features = tf.squeeze(pointnet_features, axis=-2)
 
     # #PointCNN
+    # with tf.variable_scope('pointcnn_features') as sc:
     # pointcnn = model.PointCNN(points=points_augmented, features=features_augmented,
     #                           is_training=is_training, setting=setting)
     # pointcnn_features = pointcnn.get_point_features()
     #
     # # DGCNN
+    # with tf.variable_scope('dgcnn_features') as sc:
     # dgcnn_features = dgcnn_features_module.get_dgcnn_point_features(point_cloud=points_augmented,
     #                                                                 is_training=is_training,
     #                                                                 num_classes=setting.num_class,
