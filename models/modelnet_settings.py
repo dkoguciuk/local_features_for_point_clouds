@@ -78,6 +78,7 @@ validate_after_batches = 1000
 balance_fn = None
 map_fn = None
 keep_remainder = True
+dataset_oversample = False
 save_ply_fn = None
 
 num_class = 40

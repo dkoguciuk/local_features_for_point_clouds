@@ -92,6 +92,24 @@ def main():
     dataset_point_num = data_train.shape[1]
     dataset_feature_num = data_train.shape[2]
     num_val = data_val.shape[0]
+
+    if setting.dataset_oversample:
+        num_oversample = num_train % batch_size
+        if num_oversample:
+            oversample_indices = np.random.choice(np.arange(num_train), batch_size - num_oversample, replace=False)
+            oversample_clouds = np.take(data_train, oversample_indices, axis=0)
+            data_train = np.concatenate((data_train, oversample_clouds), axis=0)
+            oversample_labels = np.take(label_train, oversample_indices, axis=0)
+            label_train = np.concatenate((label_train, oversample_labels), axis=0)
+        num_oversample = num_val % batch_size
+        if num_oversample:
+            oversample_indices = np.random.choice(np.arange(num_val), batch_size - num_oversample, replace=False)
+            oversample_clouds = np.take(data_val, oversample_indices, axis=0)
+            data_val = np.concatenate((data_val, oversample_clouds), axis=0)
+            oversample_labels = np.take(label_val, oversample_indices, axis=0)
+            label_val = np.concatenate((label_val, oversample_labels), axis=0)
+
+
     print('{}-{:d}/{:d} training/validation samples.'.format(datetime.now(), num_train, num_val))
 
     ######################################################################
