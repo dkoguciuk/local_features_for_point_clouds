@@ -18,11 +18,13 @@ from datetime import datetime
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
+sys.path.append(os.path.join(BASE_DIR, 'pointnet', 'models'))
 
 
 import pointfly as pf
 import dgcnn_features as dgcnn_features_module
 import pointnet_pipeline as pointnet_pipeline_module
+import pointnet_cls as pointnet_features_module
 
 
 def main():
@@ -206,21 +208,30 @@ def main():
     # Build features
     ###########################################################################
 
-    pointcnn = model.PointCNN(points=points_augmented, features=features_augmented,
-                              is_training=is_training, setting=setting)
-    pointcnn_features = pointcnn.get_point_features()
+    # PointNet
+    _, _, pointnet_features = pointnet_features_module.get_model(point_cloud=points_augmented,
+                                                                 is_training=is_training,
+                                                                 num_classes=setting.num_class)
+    pointnet_features = tf.squeeze(pointnet_features, axis=-2)
 
-    dgcnn_features = dgcnn_features_module.get_dgcnn_point_features(point_cloud=points_augmented,
-                                                                    is_training=is_training,
-                                                                    num_classes=setting.num_class,
-                                                                    bn_decay=None)
+    # #PointCNN
+    # pointcnn = model.PointCNN(points=points_augmented, features=features_augmented,
+    #                           is_training=is_training, setting=setting)
+    # pointcnn_features = pointcnn.get_point_features()
+    #
+    # # DGCNN
+    # dgcnn_features = dgcnn_features_module.get_dgcnn_point_features(point_cloud=points_augmented,
+    #                                                                 is_training=is_training,
+    #                                                                 num_classes=setting.num_class,
+    #                                                                 bn_decay=None)
 
     ###########################################################################
     # Build pipeline on top of it
     ###########################################################################
 
     # PointNet pipeline
-    point_features = tf.concat((pointcnn_features, dgcnn_features), axis=-1)
+    point_features = pointnet_features
+    #point_features = tf.concat((pointnet_features, dgcnn_features), axis=-1)
     predictions, _, _ = pointnet_pipeline_module.get_model(point_features=point_features, is_training=is_training,
                                                            num_classes=setting.num_class, bn_decay=None)
 
